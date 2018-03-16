@@ -1,0 +1,215 @@
+#include <iostream>
+#include <string>
+#include <conio.h>
+#include <windows.h>
+#include <time.h>
+#include <MMSystem.h>
+#include <fstream>
+using namespace std;
+ifstream filei;
+ofstream fileo;
+const int w = 30; //Width for border
+const int h = 30; //Height for border
+int x, y, Ax, Ay, score, highscore;// x/y control x/y axis, Ax/Ay = Apple (food), score is score, highscore is highscore
+int Tx[100], Ty[100]; // Tx/Ty represent the tail growth
+int nT; // Represents tail
+enum direction { STOP = 0, LEFT, RIGHT, UP, DOWN }; //Direction
+direction d; //d = direction
+bool gover; //This allows for a game over
+bool error; //Error Detection
+
+void gotoxy(int column, int line)
+{
+	COORD coord;
+	coord.X = column;
+	coord.Y = line;
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE),coord);
+}
+void set()
+{
+	gover = false;
+	d = STOP;
+	x = w / 2;//Puts snake in middle of x axis
+	y = h / 2;//Puts snake in middle of y axis
+	Ax = rand() % w;//Spawns food randomly on x axis
+	Ay = rand() % h;//Spawns food randomly on y axis
+	score = 0; // Sets the score to 0
+}
+void DisplayBorder()
+{
+	gotoxy(0, 0);
+	for (int i = 0; i < w + 2; i++)//Prints upper border
+		cout << char(205);
+	cout << endl;
+	for (int i = 0; i < h; i++)//Prints side borders
+	{
+		gotoxy(0, i);
+		cout << char(186);
+		gotoxy(w + 2, i);
+		cout << char(186);
+	}
+	for (int i = 0; i < w + 2; i++)//Prints upper border
+	{
+		gotoxy(i, h);
+		cout << char(205);
+	}
+}
+void EraseArea(int x, int y, int width, int height)
+{
+	int i, j;
+	for (i = x; i < width; i++)
+	{
+		for (j = y; j < height; j++)
+		{
+			gotoxy(i, j);
+			cout << " ";
+		}
+	}
+}
+void draw()
+{
+	EraseArea(1, 1, 30, 30);
+	gotoxy(Ax, Ay);// display apple
+	cout << char(149);//Apple (food)
+	gotoxy(x, y);// display head
+	cout << char(254);//Head
+	for (int k = 0; k < nT; k++)// now display tail
+	{
+		gotoxy(Tx[k], Ty[k]);
+		cout << char(254);
+	}
+	gotoxy(33, 0);//display score
+	cout << "Score: " << score << endl;
+}
+
+void input()
+{
+	if (_kbhit())//recognizes when the user to input the keyboard
+	{
+		switch (_getch())//Takes character
+		{
+		case 'a':
+			d = LEFT;
+			break;
+		case 'd':
+			d = RIGHT;
+			break;
+		case 'w':
+			d = UP;
+			break;
+		case 's':
+			d = DOWN;
+			break;
+		case 'g':
+			gover = true;
+			break;
+		}
+	}
+}
+void brains()
+{
+	int prevx = Tx[0], prevy = Ty[0];
+	int prev2x = 0, prev2y = 0;
+	Tx[0] = x;//Remembers the 1st tail value on x axis
+	Ty[0] = y;//Remembers the 2nd tail value on y axis
+	for (int i = 1; i < nT; i++)//Remembering last tail position
+	{
+		prev2x = Tx[i];
+		prev2y = Ty[i];
+		Tx[i] = prevx;
+		Ty[i] = prevy;
+		prevx = prev2x;
+		prevy = prev2y;
+	}
+	switch (d)
+	{
+	case LEFT:
+		x--;
+		break;
+	case RIGHT:
+		x++;
+		break;
+	case UP:
+		y--;
+		break;
+	case DOWN:
+		y++;
+		break;
+	default:
+		break;
+	}
+	if (x > w - 1 || x < 0 || y > h - 1 || y < 0)//Snake hits wall, gameover
+		gover = true;
+	for (int i = 0; i < nT; i++)
+	{
+		if (Tx[i] == x && Ty[i] == y) // Snake hits tail, gameover
+			gover = true;
+	}
+	if (x == Ax && y == Ay)//Ax is = to x & Ay is = to y, spawn apple
+	{
+		Ax = rand() % w;
+		Ay = rand() % h;
+		nT++;
+		score += 1;//Food is eaten, score + 1
+		Tx[nT - 1] = Tx[nT - 2];
+		Ty[nT - 1] = Ty[nT - 2];
+	}
+}
+void music()
+{
+	PlaySound(TEXT("Careless.wav"), NULL, SND_FILENAME | SND_LOOP | SND_ASYNC);
+}
+
+int main()
+{
+	music();
+	srand(time(NULL));
+	char c;
+
+	filei.open("Highscore.txt"); //opens file
+	if (filei.is_open()) //File opens successfully, it reads the highscore
+	{
+		filei >> highscore;
+		filei.close();
+		error = false; //error will be false, because file opened successfully
+	}
+	else
+	{
+		highscore = 0; //File doesn't exist, then highscore is set to 0, and error will be true
+		error = true;
+	}
+	do 
+	{
+		string name;
+		system("Color 0A");
+		system("cls");
+		cout << "\n\n\t\t\t\t\t\tSexy Snake\n";
+		cout << "\n\n\t\t\t\t\t\tHigh Score: " << highscore << endl;
+		cout << "\n\t\t\t\t\t\tC O N T R O L S:\n\t\t\t\t\t\tW = UP\n\t\t\t\t\t\tA = LEFT\n\t\t\t\t\t\tS = DOWN\n\t\t\t\t\t\tD = RIGHT" << endl;
+		cout << "\n\t\t\t\t\t\tEnter your name:";
+		cin >> name;
+		system("cls");
+		set();
+		DisplayBorder();
+		while (!gover)
+		{
+			draw();
+			input();
+			brains();
+			Sleep(100);
+		}
+		system("cls");
+		if (score > highscore) highscore = score;
+		if (error == false) //If high score file exist then it writes new highscore
+		{
+			fileo.open("Highscore.txt");
+			fileo << highscore;
+			fileo.close();
+		}
+		cout << "\n\n\t\t\t\t\t\tGAME OVER!" << endl << "\n\n\t\t\t\t\t\t" << name << ", your score is:" << score << endl;
+		cout << "\n\n\t\t\t\t\t\tCurrent High Score: " << highscore << endl;
+		cout << "\n\n\t\t\t\t\t\tTRY AGAIN, "<< name << " (Y/N)?" << endl;
+		cout << "\n\n\t\t\t\t\t\t";
+		cin >> c;
+	} while (c == 'Y' || c == 'y');
+}
